@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import asyncio, logging, aiomysql
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.WARN,
                 format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                 datefmt='%a, %d %b %Y %H:%M:%S')
 
@@ -17,12 +17,12 @@ async def create_pool(loop, **kw):
     logging.info('create database connection pool...')
     global __pool
     __pool = await aiomysql.create_pool(
-        host=kw.get('host', 'localhost'),
+        host=kw.get('host', '192.168.0.114'),
         port=kw.get('port', 3306),
         user=kw['user'],
-        pwd=kw['password'],
+        password=kw['password'],
         db=kw['db'],
-        charset=kw.get('charset', 'utf-8'),
+        charset=kw.get('charset', 'utf8'),
         autocommit=kw.get('autocommit', True),
         maxsize=kw.get('maxsize', 10),
         minsize=kw.get('minsize', 1),
@@ -133,7 +133,7 @@ class ModelMetaclass(type):
         for k in mappings.keys():
             attrs.pop(k)
         escaped_fields = list(map(lambda f: '`%s`' % f, fields))  # ``避免与sql关键字冲突
-        print(escaped_fields)
+        # print(escaped_fields)
         attrs['__mappings__'] = mappings
         attrs['__table__'] = tablename
         attrs['__primary_key__'] = primarykey
@@ -146,7 +146,7 @@ class ModelMetaclass(type):
         attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tablename, primarykey)
         # print(attrs['__insert__'])
         # print(attrs['__select__'])
-        print(attrs)
+        # print(attrs)
         return type.__new__(cls, name, bases, attrs)
 
 
@@ -154,7 +154,7 @@ class Model(dict, metaclass=ModelMetaclass):
     # 获取值，放入self中
     def __init__(self, **kw):
         super(Model, self).__init__(**kw)
-        print('kw', kw)
+        # print('kw', kw)
 
     def __getattr__(self, key):
         try:
@@ -172,11 +172,11 @@ class Model(dict, metaclass=ModelMetaclass):
         value = getattr(self, key, None)
         if value is None:
             field = self.__mappings__[key]
-            print('filed', field)
+            # print('filed', field)
             if field.default is not None:
                 # callabe判断对象能否被调用
                 value = field.default() if callable(field.default) else field.default
-                print('value', value)
+                # print('value', value)
                 logging.debug('using default value for %s:%s' % (key, str(value)))
                 setattr(self, key, value)
         return value
@@ -231,10 +231,10 @@ class Model(dict, metaclass=ModelMetaclass):
         return cls(**rs[0])
 
     async def save(self):
-        print('test', self.__fields__)
+        # print('test', self.__fields__)
         args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
-        print('args', args)
+        # print('args', args)
         rows = await execute(self.__insert__, args)
         if rows != 1:
             logging.info('failed to insert record: affected rows: %s' % rows)
@@ -259,7 +259,7 @@ class User(Model):
     name = StringField("username")
     email = StringField("email")
     password = StringField("password")
-    print(id)
+    # print(id)
 
 
 # 创建一个实例
@@ -268,9 +268,10 @@ u = User(id=12345, name="ReedSun", email="sunhongzhao@foxmail.com", password="ni
 loop = asyncio.get_event_loop()
 loop.run_until_complete(u.save())
 # loop.run_forever()
-'''
+
 loop = asyncio.get_event_loop()
 loop.run_until_complete(create_pool(host='171.17.1.213', port=3306, user='root', password='Anchiva@123', db='web_blog', loop=loop))
 rs = loop.run_until_complete(select('select * from users', None))
 #获取到了数据库返回的数据
 print("heh:%s" % rs)
+'''
