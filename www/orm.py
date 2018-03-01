@@ -17,7 +17,7 @@ async def create_pool(loop, **kw):
     logging.info('create database connection pool...')
     global __pool
     __pool = await aiomysql.create_pool(
-        host=kw.get('host', '192.168.0.114'),
+        host=kw.get('host', '172.17.1.213'),
         port=kw.get('port', 3306),
         user=kw['user'],
         password=kw['password'],
@@ -29,7 +29,12 @@ async def create_pool(loop, **kw):
         loop=loop
     )
 
-
+async def destory_pool():
+    global __pool
+    if __pool is not None :
+        __pool.close()
+        await __pool.wait_closed()
+        
 async def select(sql, args, size=None):
     log(sql, args)
     global __pool
@@ -203,8 +208,8 @@ class Model(dict, metaclass=ModelMetaclass):
             elif isinstance(limit, tuple) and len(limit) == 2:
                 sql.append('?, ?')
                 args.extend(limit)
-        else:
-            raise ValueError('Invalid limit value:%s' % str(limit))
+            else:
+                raise ValueError('Invalid limit value:%s' % str(limit))
         rs = await select(' '.join(sql), args)
         return [cls(**r) for r in rs]
 
@@ -252,15 +257,15 @@ class Model(dict, metaclass=ModelMetaclass):
         if rows != 1:
             logging.warn('failed to remove by primary_key, affect rows: %s' % rows)
 
-
+'''
 class User(Model):
     # 定义类的属性到列的映射
     id = IntegerField("id", True)
     name = StringField("username")
     email = StringField("email")
     password = StringField("password")
-    # print(id)
-
+    print(id)
+'''
 
 # 创建一个实例
 '''

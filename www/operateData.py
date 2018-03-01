@@ -10,9 +10,10 @@ loop = asyncio.get_event_loop()
 
 
 async def operateData():
-    await orm.create_pool(loop=loop, user='root', password='Admin@123', db='webblog')
+    await orm.create_pool(loop=loop, user='root', password='Anchiva@123', db='webblog')
     u = User(name='Test', email='test@example.com', passwd='1234567890', image='about:blank')
     await u.save()
-
+    await orm.destory_pool()
 
 loop.run_until_complete(operateData())
+loop.close()
