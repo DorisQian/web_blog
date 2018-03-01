@@ -184,7 +184,7 @@ class RequestHandler(object):
         else:  # request 有参数
             if self._has_named_kw_args and (not self._has_var_kw_arg):
                 copy = dict()
-				# 只保留命名关键词参数
+                # 只保留命名关键词参数
                 # remove all unamed kw:
                 for name in self._named_kw_args:
                     if name in kw:

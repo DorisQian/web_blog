@@ -10,13 +10,13 @@ async web application
 import logging;
 
 logging.basicConfig(level=logging.INFO)
-import asyncio, os, json
+import asyncio, os, json, time
 from datetime import datetime
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 import orm
 from coroweb import add_routes, add_static
-import test_view
+from config import configs
 
 
 def init_jinja2(app, **kw):
@@ -151,7 +151,13 @@ async def data_factory(app, handler):
 
 
 async def init(loop):
-    await orm.create_pool(loop=loop, host='172.17.1.213', port=3306, user='root', password='Anchiva@123', db='webblog')
+    host = configs.db.host
+    user = configs.db.user
+    pwd = configs.db.password
+    db = configs.db.db
+    print(host)
+
+    await orm.create_pool(loop=loop, host=host, user=user, password=pwd, db=db)
     app = web.Application(loop=loop, middlewares=[
         logger_factory, response_factory
     ])
