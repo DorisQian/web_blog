@@ -153,13 +153,13 @@ class RequestHandler(object):
                 if request.content_type == None:
                     return web.HTTPBadRequest(text='Miss content_type.')
                 ct = request.content_type.lower()
-                if ct.startwith('application/json'):  # json格式数据
+                if ct.startswith('application/json'):  # json格式数据
                     params = await request.json()  # 仅解析body字段的json数据
                     if not isinstance(params, dict):
                         return web.HTTPBadRequest(text='JSON body must be object.')
                     kw = params
                 # form表单请求的解码形式
-                elif ct.startwith('application/x-www-form-urlencoded') or ct.startswith('multipart/form-data'):
+                elif ct.startswith('application/x-www-form-urlencoded') or ct.startswith('multipart/form-data'):
                     params = await request.post()  # 返回post的内容中解析后的数据。dict-like对象。
                     kw = dict(**params)  # 组成dict，统一kw格式
                 else:
@@ -202,7 +202,7 @@ class RequestHandler(object):
         # check required kw:
         if self._required_kw_args:  # 视图函数存在无默认值的命名关键词参数
             for name in self._required_kw_args:
-                if not name in kw:  # 若未传入必须参数值，报错。
+                if name not in kw:  # 若未传入必须参数值，报错。
                     return web.HTTPBadRequest('Missing argument: %s' % name)
         # 至此，kw为视图函数fn真正能调用的参数  
         # request请求中的参数，终于传递给了视图函数  

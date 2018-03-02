@@ -17,6 +17,7 @@ from jinja2 import Environment, FileSystemLoader
 import orm
 from coroweb import add_routes, add_static
 from config import configs
+from handlers import cookie2user, COOKIE_NAME
 
 
 def init_jinja2(app, **kw):
@@ -75,6 +76,21 @@ async def logger_factory(app, handler):
 
     return logger
 
+# 解析cokkie绑定到request上
+async def auth_factory(app, handler):
+    async def auth(request):
+        logging.info('check user: %s %s' % (request.method, request.path))
+        request.__user__ = None
+        cookie_str = request.cookies.get(COOKIE_NAME)
+        if cookie_str:
+            user = await cookie2user(cookie_str)
+            if user:
+                logging.info('set current user: %s' % user.email)
+                request.__user__ = user
+        if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
+            return web.HTTPFound('/signin')
+        return await handler(request)
+    return auth
 
 # 处理视图函数返回值，制作response的middleware
 # 请求对象request的处理工序：  
@@ -117,6 +133,7 @@ async def response_factory(app, handler):
             else:  # 带模版信息，渲染模版
                 # app['__templating__']获取已初始化的Environment对象，调用get_template()方法返回Template对象
                 # 调用Template对象的render()方法，传入r渲染模板，返回unicode格式字符串，将其用utf-8编码
+                # r['__user__'] = request.__user__
                 resp = web.Response(body=app['__template__'].get_template(template).render(**r))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
@@ -151,13 +168,7 @@ async def data_factory(app, handler):
 
 
 async def init(loop):
-    host = configs.db.host
-    user = configs.db.user
-    pwd = configs.db.password
-    db = configs.db.db
-    print(host)
-
-    await orm.create_pool(loop=loop, host=host, user=user, password=pwd, db=db)
+    await orm.create_pool(loop=loop, **configs.db)
     app = web.Application(loop=loop, middlewares=[
         logger_factory, response_factory
     ])

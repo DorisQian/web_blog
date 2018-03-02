@@ -10,7 +10,7 @@ __author__ = 'Doris Qian'
 
 
 def log(sql, args=()):
-    logging.info('SQL: %s' % sql)
+    logging.info('SQL: %s' % sql, args)
 
 
 async def create_pool(loop, **kw):
