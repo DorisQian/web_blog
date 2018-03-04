@@ -36,9 +36,10 @@ def init_jinja2(app, **kw):
     )
     # 获取模板文件夹路径
     path = kw.get('path', None)
-    if not path:
+    if path is None:
         # os.path.abspath 绝对路径带文件名，dirname去除文件名的路径，join前后两个参数连一起的路径
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+    logging.info('set jinja2 template path: %s' % path)
     # Environment类是jinja2的核心类，用来保存配置、全局对象以及模板文件的路径
     # FileSystemLoader类加载path路径中的模板文件
     env = Environment(loader=FileSystemLoader(path), **options)
@@ -50,7 +51,7 @@ def init_jinja2(app, **kw):
             env.filters[name] = f
     # 所有的一切是为了给app添加__templating__字段
     # 前面将jinja2的环境配置都赋值给env了，这里再把env存入app的dict中，这样app就知道要到哪儿去找模板，怎么解析模板。
-    app['__template__'] = env  # app是一个dict-like对象
+    app['__templating__'] = env  # app是一个dict-like对象
 
 
 def datetime_filter(t):
@@ -93,12 +94,12 @@ async def auth_factory(app, handler):
     return auth
 
 # 处理视图函数返回值，制作response的middleware
-# 请求对象request的处理工序：  
-#              logger_factory => response_factory => RequestHandler().__call__ => handler  
-# 响应对象response的处理工序：  
-# 1、由视图函数处理request后返回数据  
-# 2、@get@post装饰器在返回对象上附加'__method__'和'__route__'属性，使其附带URL信息  
-# 3、response_factory对处理后的对象，经过一系列类型判断，构造出真正的web.Response对象  
+# 请求对象request的处理工序：
+#              logger_factory => response_factory => RequestHandler().__call__ => handler
+# 响应对象response的处理工序：
+# 1、由视图函数处理request后返回数据
+# 2、@get@post装饰器在返回对象上附加'__method__'和'__route__'属性，使其附带URL信息
+# 3、response_factory对处理后的对象，经过一系列类型判断，构造出真正的web.Response对象
 async def response_factory(app, handler):
     async def response(request):
         logging.info('Response handler...')
@@ -133,8 +134,8 @@ async def response_factory(app, handler):
             else:  # 带模版信息，渲染模版
                 # app['__templating__']获取已初始化的Environment对象，调用get_template()方法返回Template对象
                 # 调用Template对象的render()方法，传入r渲染模板，返回unicode格式字符串，将其用utf-8编码
-                # r['__user__'] = request.__user__
-                resp = web.Response(body=app['__template__'].get_template(template).render(**r))
+                r['__user__'] = request.__user__
+                resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
                 # 返回响应吗
@@ -170,7 +171,7 @@ async def data_factory(app, handler):
 async def init(loop):
     await orm.create_pool(loop=loop, **configs.db)
     app = web.Application(loop=loop, middlewares=[
-        logger_factory, response_factory
+        logger_factory, auth_factory, response_factory
     ])
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
